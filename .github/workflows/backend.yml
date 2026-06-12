@@ -28,4 +28,4 @@ jobs:
       # Optional: Deploy to VPS/Render
       - name: Deploy Backend
         run: |
-          ssh user@your-server "cd /path/to/backend && git pull && npm install && pm2 restart MCN-Backend"
+          ssh SSH_USER@srv1556.hstgr.io "cd /home/USERNAME/public_html/api && git pull && npm install && pm2 restart backend"
