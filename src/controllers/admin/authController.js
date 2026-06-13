@@ -65,10 +65,7 @@ export const loginAdmin = async (req, res) => {
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      admin.password
-    );
+    const isPasswordValid = await bcrypt.compare(password, admin.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -78,16 +75,13 @@ export const loginAdmin = async (req, res) => {
     }
 
     const accessToken = generateAccessToken(admin);
-
     const refreshToken = generateRefreshToken(admin);
 
     await prisma.refreshToken.create({
       data: {
         adminId: admin.id,
         token: refreshToken,
-        expiresAt: new Date(
-          Date.now() + 7 * 24 * 60 * 60 * 1000
-        ),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
 
@@ -112,11 +106,11 @@ export const loginAdmin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-
+    // ─── TEMPORARY — expose actual error in production ───
+    console.error("LOGIN ERROR:", error);
     return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: error.message, // ← shows actual error
     });
   }
 };
