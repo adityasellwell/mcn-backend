@@ -1,14 +1,16 @@
 import prisma from "../../config/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import  {generateAccessToken, generateRefreshToken} from "../../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
 
+// ─────────────────────────────────────────────
+// POST /api/admin/seed-admin
+// Seed default admin (run once)
+// ─────────────────────────────────────────────
 export const seedAdmin = async (req, res) => {
   try {
     const existingAdmin = await prisma.admin.findUnique({
-      where: {
-        email: "admin@mcn.com",
-      },
+      where: { email: "admin@mcn.com" },
     });
 
     if (existingAdmin) {
@@ -33,16 +35,15 @@ export const seedAdmin = async (req, res) => {
       success: true,
       message: "Admin seeded successfully",
       data: {
-            id: admin.id,
-            name: admin.name,
-            email: admin.email,
-            role: admin.role,
-            status: admin.status,
-            }
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        status: admin.status,
+      },
     });
   } catch (error) {
-    console.error(error);
-
+    console.error("SEED ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -50,10 +51,23 @@ export const seedAdmin = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// POST /api/admin/login
+// Admin login
+// ─────────────────────────────────────────────
 export const loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // ─── Validate input ───
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    // ─── Find admin ───
     const admin = await prisma.admin.findUnique({
       where: { email },
     });
@@ -65,6 +79,7 @@ export const loginAdmin = async (req, res) => {
       });
     }
 
+    // ─── Verify password ───
     const isPasswordValid = await bcrypt.compare(password, admin.password);
 
     if (!isPasswordValid) {
@@ -74,9 +89,11 @@ export const loginAdmin = async (req, res) => {
       });
     }
 
+    // ─── Generate tokens ───
     const accessToken = generateAccessToken(admin);
     const refreshToken = generateRefreshToken(admin);
 
+    // ─── Store refresh token ───
     await prisma.refreshToken.create({
       data: {
         adminId: admin.id,
@@ -85,6 +102,7 @@ export const loginAdmin = async (req, res) => {
       },
     });
 
+    // ─── Set refresh token cookie ───
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -106,21 +124,22 @@ export const loginAdmin = async (req, res) => {
       },
     });
   } catch (error) {
-    // ─── TEMPORARY — expose actual error in production ───
-    console.error("LOGIN ERROR:", error);
+    console.error("LOGIN ERROR:", error.message);
     return res.status(500).json({
       success: false,
-      message: error.message, // ← shows actual error
+      message: error.message,
     });
   }
 };
 
+// ─────────────────────────────────────────────
+// GET /api/admin/profile
+// Get admin profile
+// ─────────────────────────────────────────────
 export const getProfile = async (req, res) => {
   try {
     const admin = await prisma.admin.findUnique({
-      where: {
-        id: req.admin.id,
-      },
+      where: { id: req.admin.id },
       select: {
         id: true,
         name: true,
@@ -132,11 +151,19 @@ export const getProfile = async (req, res) => {
       },
     });
 
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: admin,
     });
   } catch (error) {
+    console.error("PROFILE ERROR:", error.message);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -144,25 +171,28 @@ export const getProfile = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// POST /api/admin/refresh-token
+// Refresh access token using cookie
+// ─────────────────────────────────────────────
 export const refreshToken = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const token = req.cookies.refreshToken;
 
-    if (!refreshToken) {
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: "Refresh token required",
       });
     }
 
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET
-    );
+    // ─── Verify token signature ───
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 
+    // ─── Check token in DB ───
     const tokenRecord = await prisma.refreshToken.findFirst({
       where: {
-        token: refreshToken,
+        token,
         isRevoked: false,
       },
     });
@@ -170,14 +200,23 @@ export const refreshToken = async (req, res) => {
     if (!tokenRecord) {
       return res.status(401).json({
         success: false,
-        message: "Invalid refresh token",
+        message: "Token revoked or invalid",
       });
     }
 
+    // ─── Find admin ───
     const admin = await prisma.admin.findUnique({
       where: { id: decoded.id },
     });
 
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    // ─── Generate new access token ───
     const accessToken = generateAccessToken(admin);
 
     return res.status(200).json({
@@ -185,39 +224,41 @@ export const refreshToken = async (req, res) => {
       accessToken,
     });
   } catch (error) {
+    console.error("REFRESH ERROR:", error.message);
     return res.status(401).json({
       success: false,
-      message: "Refresh token expired",
+      message: "Refresh token expired or invalid",
     });
   }
 };
 
+// ─────────────────────────────────────────────
+// POST /api/admin/logout
+// Logout and revoke refresh token
+// ─────────────────────────────────────────────
 export const logoutAdmin = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const token = req.cookies.refreshToken;
 
-    if (refreshToken) {
+    if (token) {
       await prisma.refreshToken.updateMany({
-        where: {
-          token: refreshToken,
-        },
-        data: {
-          isRevoked: true,
-        },
+        where: { token },
+        data: { isRevoked: true },
       });
     }
 
     res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      });
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    });
 
     return res.status(200).json({
       success: true,
       message: "Logout successful",
     });
   } catch (error) {
+    console.error("LOGOUT ERROR:", error.message);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -225,19 +266,17 @@ export const logoutAdmin = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// PUT /api/admin/profile
+// Update admin profile
+// ─────────────────────────────────────────────
 export const updateProfile = async (req, res) => {
   try {
     const { name, phone, profilePhoto } = req.body;
 
     const admin = await prisma.admin.update({
-      where: {
-        id: req.admin.id,
-      },
-      data: {
-        name,
-        phone,
-        profilePhoto,
-      },
+      where: { id: req.admin.id },
+      data: { name, phone, profilePhoto },
     });
 
     return res.status(200).json({
@@ -252,8 +291,7 @@ export const updateProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-
+    console.error("UPDATE PROFILE ERROR:", error.message);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -261,20 +299,33 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// PUT /api/admin/change-password
+// Change admin password
+// ─────────────────────────────────────────────
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current and new password are required",
+      });
+    }
+
     const admin = await prisma.admin.findUnique({
-      where: {
-        id: req.admin.id,
-      },
+      where: { id: req.admin.id },
     });
 
-    const isMatch = await bcrypt.compare(
-      currentPassword,
-      admin.password
-    );
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, admin.password);
 
     if (!isMatch) {
       return res.status(400).json({
@@ -283,18 +334,11 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(
-      newPassword,
-      12
-    );
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.admin.update({
-      where: {
-        id: admin.id,
-      },
-      data: {
-        password: hashedPassword,
-      },
+      where: { id: admin.id },
+      data: { password: hashedPassword },
     });
 
     return res.status(200).json({
@@ -302,8 +346,7 @@ export const changePassword = async (req, res) => {
       message: "Password changed successfully",
     });
   } catch (error) {
-    console.error(error);
-
+    console.error("CHANGE PASSWORD ERROR:", error.message);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -311,20 +354,33 @@ export const changePassword = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// PUT /api/admin/change-email
+// Change admin email
+// ─────────────────────────────────────────────
 export const changeEmail = async (req, res) => {
   try {
     const { password, newEmail } = req.body;
 
+    if (!password || !newEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Password and new email are required",
+      });
+    }
+
     const admin = await prisma.admin.findUnique({
-      where: {
-        id: req.admin.id,
-      },
+      where: { id: req.admin.id },
     });
 
-    const isMatch = await bcrypt.compare(
-      password,
-      admin.password
-    );
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
 
     if (!isMatch) {
       return res.status(400).json({
@@ -334,25 +390,19 @@ export const changeEmail = async (req, res) => {
     }
 
     const existingEmail = await prisma.admin.findUnique({
-      where: {
-        email: newEmail,
-      },
+      where: { email: newEmail },
     });
 
     if (existingEmail) {
       return res.status(400).json({
         success: false,
-        message: "Email already exists",
+        message: "Email already in use",
       });
     }
 
     await prisma.admin.update({
-      where: {
-        id: admin.id,
-      },
-      data: {
-        email: newEmail,
-      },
+      where: { id: admin.id },
+      data: { email: newEmail },
     });
 
     return res.status(200).json({
@@ -360,8 +410,7 @@ export const changeEmail = async (req, res) => {
       message: "Email updated successfully",
     });
   } catch (error) {
-    console.error(error);
-
+    console.error("CHANGE EMAIL ERROR:", error.message);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
