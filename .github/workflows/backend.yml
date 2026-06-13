@@ -1,31 +1,32 @@
-# name: Backend CI/CD
+name: Backend CI/CD
 
-# on:
-#   push:
-#     branches: [ main, develop ]
-#   pull_request:
-#     branches: [ main, develop ]
+on:
+  push:
+    branches: [ main ]
 
-# jobs:
-#   build-deploy:
-#     runs-on: ubuntu-latest
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#       - name: Setup Node.js
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: '20'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
-#       - name: Install dependencies
-#         run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-#       - name: Run tests
-#         run: npm test || echo "No tests defined"
+      - name: Validate Prisma schema
+        run: npx prisma validate
 
-#       # Optional: Deploy to VPS/Render
-#       # - name: Deploy Backend
-#       #   run: |
-#       #     ssh SSH_USER@srv1556.hstgr.io "cd /home/USERNAME/public_html/api && git pull && npm install && pm2 restart backend"
+      - name: Generate Prisma client
+        run: npx prisma generate
