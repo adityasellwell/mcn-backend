@@ -29,14 +29,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: process.env.NODE_ENV === "production"
-      ? "https://mcnmumbai.com"
-      : true,
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://mcnmumbai.com"
+  ],
+  credentials: true
+}));
 
 /*
 |--------------------------------------------------------------------------
