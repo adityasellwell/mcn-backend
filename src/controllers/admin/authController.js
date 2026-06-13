@@ -1,5 +1,6 @@
 import prisma from "../../config/prisma.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import  {generateAccessToken, generateRefreshToken} from "../../utils/jwt.js";
 
 export const seedAdmin = async (req, res) => {
@@ -92,8 +93,8 @@ export const loginAdmin = async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -212,7 +213,11 @@ export const logoutAdmin = async (req, res) => {
       });
     }
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      });
 
     return res.status(200).json({
       success: true,

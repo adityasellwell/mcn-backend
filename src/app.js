@@ -31,7 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: true,
+    origin: process.env.NODE_ENV === "production"
+      ? "https://mcnmumbai.com"
+      : true,
     credentials: true,
   })
 );
