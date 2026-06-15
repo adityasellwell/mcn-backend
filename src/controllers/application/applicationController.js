@@ -44,11 +44,15 @@ export const createApplication = async (req, res) => {
     let parsedSocialLinks = [];
     if (socialLinks) {
       try {
-        parsedSocialLinks = JSON.parse(socialLinks);
+        parsedSocialLinks = typeof socialLinks === "string" ? JSON.parse(socialLinks) : socialLinks;
       } catch {
         parsedSocialLinks = [];
       }
     }
+
+    const socialProfilesString = Array.isArray(parsedSocialLinks) && parsedSocialLinks.length > 0
+      ? JSON.stringify(parsedSocialLinks)
+      : null;
 
     // ─── Parse IDs as integers ───
     const parsedChapterId = chapterId ? parseInt(chapterId) : null;
@@ -67,7 +71,7 @@ export const createApplication = async (req, res) => {
         companyName,
         businessCategory,
         website: website || null,
-        socialProfiles: parsedSocialLinks,
+        socialProfiles: socialProfilesString,
         address,
         referredBy: referredBy || null,
         utrNumber: utrNumber || null,
