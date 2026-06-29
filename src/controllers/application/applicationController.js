@@ -10,6 +10,10 @@ import {
 import {
   registrationAdminTemplate,
 } from "../../templates/registrationAdminTemplate.js";
+
+import {
+  registrationApprovalTemplate,
+} from "../../templates/registrationApprovalTemplate.js";
  
 export const createApplication = async (req, res) => {
   try {
@@ -351,6 +355,14 @@ export const approveApplication = async (req, res) => {
         data: { status: "APPROVED" },
       });
 
+    // Fetch meeting details if meetingId exists
+    let meeting = null;
+    if (updated.meetingId) {
+      meeting = await prisma.meeting.findUnique({
+        where: { id: updated.meetingId },
+      });
+    }
+
     // Send approval email if SMTP is configured
     if (
       process.env.SMTP_EMAIL &&
@@ -359,17 +371,7 @@ export const approveApplication = async (req, res) => {
       await sendEmail({
         to: updated.email,
         subject: "MCN Application Approved",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #0C831F;">Application Approved!</h2>
-            <p>Dear ${updated.fullName},</p>
-            <p>Your registration application for MCN has been <strong>approved</strong>.</p>
-            <p>Our team will reach out to you shortly with further details about your membership and upcoming meetings.</p>
-            <br/>
-            <p>Welcome to the MCN family!</p>
-            <p style="color: #666;">— MCN Team</p>
-          </div>
-        `,
+        html: registrationApprovalTemplate(updated, meeting),
       });
     }
 
