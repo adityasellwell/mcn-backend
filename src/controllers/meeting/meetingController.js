@@ -120,11 +120,35 @@ export const updateMeeting = async (req, res) => {
       });
     }
 
+    const {
+      chapterId,
+      title,
+      description,
+      meetingDate,
+      startTime,
+      endTime,
+      address,
+      meetingFee,
+      agenda,
+      status,
+    } = req.body;
+
     const updatedMeeting = await prisma.meeting.update({
       where: {
         id: Number(id),
       },
-      data: req.body,
+      data: {
+        chapterId: chapterId !== undefined ? Number(chapterId) : undefined,
+        title: title !== undefined ? title : undefined,
+        description: description !== undefined ? description : undefined,
+        meetingDate: meetingDate !== undefined ? new Date(meetingDate) : undefined,
+        startTime: startTime !== undefined ? startTime : undefined,
+        endTime: endTime !== undefined ? endTime : undefined,
+        address: address !== undefined ? address : undefined,
+        meetingFee: meetingFee !== undefined ? (meetingFee !== null ? Number(meetingFee) : null) : undefined,
+        agenda: agenda !== undefined ? agenda : undefined,
+        status: status !== undefined ? status : undefined,
+      },
     });
 
     return res.status(200).json({
