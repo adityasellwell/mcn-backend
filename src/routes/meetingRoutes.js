@@ -31,6 +31,11 @@ router.get(
 );
 
 router.get(
+  "/chapter/:chapterId/upcoming",
+  getUpcomingMeetingByChapter
+);
+
+router.get(
   "/:id",
   adminAuthMiddleware,
   roleMiddleware("ADMIN"),
@@ -50,11 +55,6 @@ router.delete(
   adminAuthMiddleware,
   roleMiddleware("ADMIN"),
   deleteMeeting
-);
-
-router.get(
-  "/chapter/:chapterId/upcoming",
-  getUpcomingMeetingByChapter
 );
 
 export default router;
