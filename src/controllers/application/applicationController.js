@@ -135,10 +135,24 @@ export const createApplication = async (req, res) => {
 export const exportApplications =
 async (req, res) => {
   try {
+    const { status, meetingId } = req.query;
+
+    const where = {};
+    if (status) where.status = status;
+    if (meetingId) where.meetingId = Number(meetingId);
+
     const applications =
       await prisma.registrationApplication.findMany({
+        where,
         orderBy: {
           createdAt: "desc",
+        },
+        include: {
+          meeting: {
+            select: {
+              title: true,
+            },
+          },
         },
       });
 
@@ -183,6 +197,16 @@ async (req, res) => {
           },
 
           {
+            header: "Meeting ID",
+            key: "meetingId",
+          },
+
+          {
+            header: "Meeting Title",
+            key: "meetingTitle",
+          },
+
+          {
             header: "Chapter",
             key: "chapterName",
           },
@@ -198,7 +222,10 @@ async (req, res) => {
           },
         ],
 
-        data: applications,
+        data: applications.map((application) => ({
+          ...application,
+          meetingTitle: application.meeting?.title || "",
+        })),
       });
 
     res.setHeader(

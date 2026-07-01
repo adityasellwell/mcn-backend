@@ -139,6 +139,7 @@ model Meeting {
   endTime                  String
   address                  String
   meetingFee               Decimal?                  @db.Decimal(10, 2)
+  meetingQrUrl             String?                   @db.Text
   agenda                   String?                   @db.Text
   status                   Status                    @default(ACTIVE)
   createdAt                DateTime                  @default(now())

@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma.js";
+import { uploadToCloudinary } from "../../utils/cloudinaryUpload.js";
 
 export const createMeeting = async (req, res) => {
   try {
@@ -14,6 +15,15 @@ export const createMeeting = async (req, res) => {
       agenda,
     } = req.body;
 
+    let meetingQrUrl = null;
+    if (req.file && process.env.CLOUDINARY_CLOUD_NAME) {
+      const uploadedFile = await uploadToCloudinary(
+        req.file.buffer,
+        "meeting_qr"
+      );
+      meetingQrUrl = uploadedFile.secure_url;
+    }
+
     const meeting = await prisma.meeting.create({
       data: {
         chapterId: Number(chapterId),
@@ -23,8 +33,9 @@ export const createMeeting = async (req, res) => {
         startTime,
         endTime,
         address,
-        meetingFee,
+        meetingFee: meetingFee ? Number(meetingFee) : null,
         agenda,
+        meetingQrUrl,
       },
     });
 
@@ -133,6 +144,15 @@ export const updateMeeting = async (req, res) => {
       status,
     } = req.body;
 
+    let meetingQrUrl = undefined;
+    if (req.file && process.env.CLOUDINARY_CLOUD_NAME) {
+      const uploadedFile = await uploadToCloudinary(
+        req.file.buffer,
+        "meeting_qr"
+      );
+      meetingQrUrl = uploadedFile.secure_url;
+    }
+
     const updatedMeeting = await prisma.meeting.update({
       where: {
         id: Number(id),
@@ -148,6 +168,7 @@ export const updateMeeting = async (req, res) => {
         meetingFee: meetingFee !== undefined ? (meetingFee !== null ? Number(meetingFee) : null) : undefined,
         agenda: agenda !== undefined ? agenda : undefined,
         status: status !== undefined ? status : undefined,
+        meetingQrUrl: meetingQrUrl !== undefined ? meetingQrUrl : undefined,
       },
     });
 

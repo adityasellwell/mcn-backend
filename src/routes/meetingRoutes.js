@@ -9,6 +9,7 @@ import {
   getUpcomingMeetingByChapter
 } from "../controllers/meeting/meetingController.js";
 
+import upload from "../middleware/uploadMiddleware.js";
 import adminAuthMiddleware from "../middleware/adminAuthMiddleware.js";
 import roleMiddleware from "../middleware/roleMiddleware.js";
 
@@ -18,6 +19,7 @@ router.post(
   "/",
   adminAuthMiddleware,
   roleMiddleware("ADMIN"),
+  upload.single("qr"),
   createMeeting
 );
 
@@ -39,6 +41,7 @@ router.put(
   "/:id",
   adminAuthMiddleware,
   roleMiddleware("ADMIN"),
+  upload.single("qr"),
   updateMeeting
 );
 
