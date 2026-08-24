@@ -63,8 +63,17 @@ export const getDashboardOverview = async (req, res) => {
 
 export const getRecentApplications = async (req, res) => {
   try {
+    // ─── Scope to the nearest upcoming meeting so the dashboard reflects
+    // what's currently being registered for, not the whole application
+    // history across every past meeting ───
+    const latestMeeting = await prisma.meeting.findFirst({
+      where: { meetingDate: { gte: new Date() } },
+      orderBy: { meetingDate: "asc" },
+    });
+
     const applications =
       await prisma.registrationApplication.findMany({
+        where: latestMeeting ? { meetingId: latestMeeting.id } : {},
         take: 10,
         orderBy: {
           createdAt: "desc",
@@ -74,6 +83,7 @@ export const getRecentApplications = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: applications,
+      meeting: latestMeeting,
     });
   } catch (error) {
     console.error(error);
