@@ -287,7 +287,7 @@ async (req, res) => {
 // ─────────────────────────────────────────────
 export const getApplications = async (req, res) => {
   try {
-    const { status, type, search } = req.query;
+    const { status, type, search, meetingId } = req.query;
 
     const where = {};
 
@@ -296,6 +296,9 @@ export const getApplications = async (req, res) => {
 
     // Filter by registration type enum
     if (type) where.registrationType = type;
+
+    // Filter by meeting
+    if (meetingId) where.meetingId = Number(meetingId);
 
     // Search by name, email, or mobile
     if (search) {
