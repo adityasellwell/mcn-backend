@@ -109,19 +109,28 @@ export const createApplication = async (req, res) => {
       },
     });
 
-    // ─── Auto-create visitor if VISITOR type ───
+    // ─── Auto-create visitor if VISITOR type — only if one doesn't already
+    // exist for this phone number. Visitor.phone is unique, so a returning
+    // visitor registering for a new meeting would otherwise crash this
+    // insert and fail the whole request. ───
     if (registrationType === "VISITOR") {
-      await prisma.visitor.create({
-        data: {
-          firstName: fullName,
-          email,
-          phone: mobile,
-          companyName,
-          businessCategory,
-          source: "WEBSITE",
-          status: "REGISTERED",
-        },
+      const existingVisitor = await prisma.visitor.findUnique({
+        where: { phone: mobile },
       });
+
+      if (!existingVisitor) {
+        await prisma.visitor.create({
+          data: {
+            firstName: fullName,
+            email,
+            phone: mobile,
+            companyName,
+            businessCategory,
+            source: "WEBSITE",
+            status: "REGISTERED",
+          },
+        });
+      }
     }
 
     // ─── Fetch meeting details for email ───
