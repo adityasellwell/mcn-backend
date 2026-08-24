@@ -22,7 +22,9 @@ export const getDashboardOverview = async (req, res) => {
 
       prisma.referral.count(),
 
-      prisma.registrationApplication.count(),
+      prisma.registrationApplication.count({
+        where: { status: "PENDING" },
+      }),
 
       prisma.meetingMember.count({
         where: {
