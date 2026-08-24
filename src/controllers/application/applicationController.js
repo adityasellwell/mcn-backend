@@ -14,7 +14,9 @@ import {
 import {
   registrationApprovalTemplate,
 } from "../../templates/registrationApprovalTemplate.js";
- 
+
+import { generateMemberCode } from "../../utils/generateMemberCode.js";
+
 export const createApplication = async (req, res) => {
   try {
     // ─── Handle payment screenshot upload ───
@@ -61,6 +63,30 @@ export const createApplication = async (req, res) => {
     // ─── Parse IDs as integers ───
     const parsedChapterId = chapterId ? parseInt(chapterId) : null;
     const parsedMeetingId = meetingId ? parseInt(meetingId) : null;
+
+    // ─── Guard against duplicate submissions (double-click, retry, etc.) ───
+    // Same person + same meeting/type submitted again within the last 2 minutes
+    // while still PENDING is treated as a duplicate, not a new application.
+    const duplicateWindowStart = new Date(Date.now() - 2 * 60 * 1000);
+    const existingDuplicate = await prisma.registrationApplication.findFirst({
+      where: {
+        email,
+        mobile,
+        registrationType,
+        meetingId: parsedMeetingId,
+        status: "PENDING",
+        createdAt: { gte: duplicateWindowStart },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existingDuplicate) {
+      return res.status(200).json({
+        success: true,
+        message: "Application already submitted",
+        data: existingDuplicate,
+      });
+    }
 
     // ─── Create application ───
     const application = await prisma.registrationApplication.create({
@@ -341,6 +367,50 @@ export const getApplicationById = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
+// DELETE /api/application/:id
+// Hard delete application (admin) — permanently removes the row
+// ─────────────────────────────────────────────
+export const deleteApplication = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid application ID",
+      });
+    }
+
+    const application =
+      await prisma.registrationApplication.findUnique({
+        where: { id },
+      });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found",
+      });
+    }
+
+    await prisma.registrationApplication.delete({
+      where: { id },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Application permanently deleted",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ─────────────────────────────────────────────
 // PUT /api/application/:id/approve
 // Approve application (admin)
 // ─────────────────────────────────────────────
@@ -373,6 +443,51 @@ export const approveApplication = async (req, res) => {
         success: false,
         message: "Application already approved",
       });
+    }
+
+    // ─── Approving a MEMBER application must create the actual Member
+    // record — otherwise the applicant never shows up on the Members page ───
+    if (application.registrationType === "MEMBER") {
+      if (!application.chapterId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This application has no chapter assigned. Please assign a chapter before approving.",
+        });
+      }
+
+      const existingMember = await prisma.member.findFirst({
+        where: {
+          OR: [
+            { email: application.email },
+            { phone: application.mobile },
+          ],
+        },
+      });
+
+      if (!existingMember) {
+        const nameParts = application.fullName.trim().split(/\s+/);
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(" ") || nameParts[0];
+
+        const memberCode = await generateMemberCode(application.chapterId);
+
+        await prisma.member.create({
+          data: {
+            chapterId: application.chapterId,
+            memberCode,
+            firstName,
+            lastName,
+            email: application.email,
+            phone: application.mobile,
+            companyName: application.companyName,
+            profession: application.businessCategory,
+            businessCategory: application.businessCategory,
+            website: application.website || null,
+            status: "ACTIVE",
+          },
+        });
+      }
     }
 
     // Update status to APPROVED

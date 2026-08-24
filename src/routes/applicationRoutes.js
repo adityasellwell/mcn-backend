@@ -9,6 +9,7 @@ import {
   getApplicationById,
   approveApplication,
   rejectApplication,
+  deleteApplication,
 } from "../controllers/application/applicationController.js";
 
 const router = express.Router();
@@ -62,6 +63,14 @@ router.put(
   adminAuthMiddleware,
   roleMiddleware("ADMIN"),
   rejectApplication
+);
+
+// Hard delete application
+router.delete(
+  "/:id",
+  adminAuthMiddleware,
+  roleMiddleware("ADMIN"),
+  deleteApplication
 );
 
 export default router;

@@ -191,14 +191,13 @@ export const updateMemberStatus = async (req, res) => {
   }
 };
 
+// ─── Hard delete member — permanently removes the row and its dependents ───
 export const deleteMember = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
 
     const member = await prisma.member.findUnique({
-      where: {
-        id: Number(id),
-      },
+      where: { id },
     });
 
     if (!member) {
@@ -208,18 +207,22 @@ export const deleteMember = async (req, res) => {
       });
     }
 
-    await prisma.member.update({
-      where: {
-        id: Number(id),
-      },
-      data: {
-        status: "INACTIVE",
-      },
-    });
+    await prisma.$transaction([
+      prisma.chapterRole.deleteMany({ where: { memberId: id } }),
+      prisma.meetingMember.deleteMany({ where: { memberId: id } }),
+      prisma.referral.deleteMany({
+        where: { OR: [{ givenByMemberId: id }, { receivedByMemberId: id }] },
+      }),
+      prisma.visitor.updateMany({
+        where: { referredByMemberId: id },
+        data: { referredByMemberId: null },
+      }),
+      prisma.member.delete({ where: { id } }),
+    ]);
 
     return res.status(200).json({
       success: true,
-      message: "Member deleted successfully",
+      message: "Member permanently deleted",
     });
   } catch (error) {
     console.error(error);
