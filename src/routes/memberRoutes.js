@@ -1,9 +1,17 @@
 import express from "express";
-import { createMember, getAllMembers, getMemberById, updateMember, updateMemberStatus, deleteMember } from "../controllers/member/memberController.js";
+import { createMember, getAllMembers, getMemberById, updateMember, updateMemberStatus, deleteMember, lookupMember } from "../controllers/member/memberController.js";
 import adminAuthMiddleware from "../middleware/adminAuthMiddleware.js";
 import roleMiddleware from "../middleware/roleMiddleware.js";
+import { memberLookupLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
+
+// ─── Public — must be registered before "/:id" or it'd be swallowed by it ───
+router.get(
+  "/lookup",
+  memberLookupLimiter,
+  lookupMember
+);
 
 router.post(
   "/",

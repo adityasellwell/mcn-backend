@@ -1,6 +1,64 @@
 import prisma from "../../config/prisma.js";
 import { generateMemberCode } from "../../utils/generateMemberCode.js";
 
+// ─────────────────────────────────────────────
+// GET /api/member/lookup?phone=&email=
+// Public — used by the registration form's "Fetch Details" action.
+// Requires BOTH phone and email to match an existing member, so a phone
+// number alone can't be used to scrape member PII.
+// ─────────────────────────────────────────────
+export const lookupMember = async (req, res) => {
+  try {
+    const { phone, email } = req.query;
+
+    if (!phone || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone and email are required",
+      });
+    }
+
+    const member = await prisma.member.findFirst({
+      where: {
+        phone: String(phone).trim(),
+        email: String(email).trim().toLowerCase(),
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        companyName: true,
+        profession: true,
+        businessCategory: true,
+        website: true,
+        chapterId: true,
+        chapter: {
+          select: { id: true, name: true, city: true },
+        },
+      },
+    });
+
+    if (!member) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: member,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const createMember = async (req, res) => {
   try {
     const {
