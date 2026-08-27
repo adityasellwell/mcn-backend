@@ -18,37 +18,61 @@ export const lookupMember = async (req, res) => {
       });
     }
 
+    const cleanPhone = String(phone).trim();
+    const cleanEmail = String(email).trim().toLowerCase();
+
+    const memberSelect = {
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      companyName: true,
+      profession: true,
+      businessCategory: true,
+      website: true,
+      chapterId: true,
+      chapter: {
+        select: { id: true, name: true, city: true },
+      },
+    };
+
     const member = await prisma.member.findFirst({
-      where: {
-        phone: String(phone).trim(),
-        email: String(email).trim().toLowerCase(),
-      },
-      select: {
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        companyName: true,
-        profession: true,
-        businessCategory: true,
-        website: true,
-        chapterId: true,
-        chapter: {
-          select: { id: true, name: true, city: true },
-        },
-      },
+      where: { phone: cleanPhone, email: cleanEmail },
+      select: memberSelect,
     });
 
-    if (!member) {
+    if (member) {
       return res.status(200).json({
         success: true,
+        status: "found",
+        message: "Member found",
+        data: member,
+      });
+    }
+
+    // ─── Phone matches but email doesn't — tell the user precisely that,
+    // without revealing the actual details of the phone-matched record ───
+    const phoneMatch = await prisma.member.findFirst({
+      where: { phone: cleanPhone },
+      select: { id: true },
+    });
+
+    if (phoneMatch) {
+      return res.status(200).json({
+        success: true,
+        status: "mismatch",
+        message:
+          "We found a member with this phone number, but the email doesn't match our records. Please check and try again.",
         data: null,
       });
     }
 
     return res.status(200).json({
       success: true,
-      data: member,
+      status: "not_found",
+      message:
+        "No existing member found with this phone number. Please fill in your details below.",
+      data: null,
     });
   } catch (error) {
     console.error(error);
