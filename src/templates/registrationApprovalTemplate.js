@@ -3,12 +3,12 @@ export const registrationApprovalTemplate = (application, meeting = null) => {
 <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; color: #333;">
 
   <div style="background: #0C831F; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">Meet Connect Network</h1>
+    <h1 style="color: white; margin: 0; font-size: 24px;">MCN - Muslim Community Network</h1>
     <p style="color: #d4f5d4; margin: 6px 0 0;">Application Approved</p>
   </div>
 
   <p>Hello <strong>${application.fullName}</strong>,</p>
-  <p>Congratulations! Your registration application for <strong>Meet Connect Network (MCN)</strong> has been <strong>approved</strong>.</p>
+  <p>Congratulations! Your registration application for <strong>Muslim Community Network (MCN)</strong> has been <strong>approved</strong>.</p>
   <p>We are excited to welcome you! Below are the details of the upcoming meeting you registered for. Please make sure to attend as per the schedule.</p>
 
   ${meeting ? `
@@ -43,7 +43,12 @@ export const registrationApprovalTemplate = (application, meeting = null) => {
   <p>If you have any questions or need further assistance, please feel free to reach out to us.</p>
   <p>Welcome to the MCN community!</p>
 
-  <p>Regards,<br/><strong>Meet Connect Network Team</strong></p>
+  <p>Regards,<br/><strong>Muslim Community Network Team</strong></p>
+
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <div style="text-align: center; font-size: 11px; color: #888; margin-top: 20px; font-style: italic;">
+    Beautifully developed and maintained by <a href="https://inspiringinfosys.com" style="color: #0C831F; text-decoration: none; font-weight: bold;">Inspiring Infosys</a>
+  </div>
 
 </div>
 `;

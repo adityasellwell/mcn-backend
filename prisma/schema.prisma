@@ -292,3 +292,13 @@ enum ApplicationStatus {
   APPROVED
   REJECTED
 }
+
+model SliderImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String   @db.Text
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("slider_images")
+}

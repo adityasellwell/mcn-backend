@@ -16,6 +16,7 @@ import attendanceRoutes from "./routes/attendanceRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js"
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import sliderRoutes from "./routes/sliderRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -70,6 +71,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/referral", referralRoutes)
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/slider", sliderRoutes);
 /*
 |--------------------------------------------------------------------------
 | Server

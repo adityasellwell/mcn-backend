@@ -6,7 +6,8 @@ import {
   getMeetingById,
   updateMeeting,
   deleteMeeting,
-  getUpcomingMeetingByChapter
+  getUpcomingMeetingByChapter,
+  getWebsiteMeetings,
 } from "../controllers/meeting/meetingController.js";
 
 import upload from "../middleware/uploadMiddleware.js";
@@ -28,6 +29,11 @@ router.get(
   adminAuthMiddleware,
   roleMiddleware("ADMIN"),
   getAllMeetings
+);
+
+router.get(
+  "/website",
+  getWebsiteMeetings
 );
 
 router.get(

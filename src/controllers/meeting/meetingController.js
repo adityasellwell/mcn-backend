@@ -264,3 +264,36 @@ export const getUpcomingMeetingByChapter = async (req, res) => {
     });
   }
 };
+
+export const getWebsiteMeetings = async (req, res) => {
+  try {
+    const meetings = await prisma.meeting.findMany({
+      where: {
+        status: "ACTIVE",
+      },
+      include: {
+        chapter: true,
+        _count: {
+          select: {
+            meetingMembers: true,
+            meetingVisitors: true,
+          },
+        },
+      },
+      orderBy: {
+        meetingDate: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: meetings,
+    });
+  } catch (error) {
+    console.error("Error in getWebsiteMeetings:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
