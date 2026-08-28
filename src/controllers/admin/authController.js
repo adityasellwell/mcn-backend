@@ -417,3 +417,34 @@ export const changeEmail = async (req, res) => {
     });
   }
 };
+
+// ─────────────────────────────────────────────
+// GET /api/admin/contact  (PUBLIC — no auth)
+// Returns admin email, phone for website display
+// ─────────────────────────────────────────────
+export const getContactInfo = async (req, res) => {
+  try {
+    const admin = await prisma.admin.findFirst({
+      where: { status: "ACTIVE" },
+      select: {
+        email: true,
+        phone: true,
+      },
+      orderBy: { id: "asc" },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        email: admin?.email || null,
+        phone: admin?.phone || null,
+      },
+    });
+  } catch (error) {
+    console.error("GET CONTACT INFO ERROR:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};

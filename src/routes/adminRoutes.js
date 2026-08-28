@@ -1,11 +1,12 @@
 import express from "express";
-import { seedAdmin, loginAdmin, getProfile, refreshToken, logoutAdmin, updateProfile, changePassword, changeEmail} from "../controllers/admin/authController.js";
+import { seedAdmin, loginAdmin, getProfile, refreshToken, logoutAdmin, updateProfile, changePassword, changeEmail, getContactInfo} from "../controllers/admin/authController.js";
 import adminAuthMiddleware from "../middleware/adminAuthMiddleware.js";
 import roleMiddleware from "../middleware/roleMiddleware.js"
 const router = express.Router();
 
 router.get("/seed-admin", seedAdmin);
 router.post("/login", loginAdmin);
+router.get("/contact", getContactInfo);
 router.get("/profile", adminAuthMiddleware, roleMiddleware("ADMIN"), getProfile);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", adminAuthMiddleware, roleMiddleware("ADMIN"), logoutAdmin);
