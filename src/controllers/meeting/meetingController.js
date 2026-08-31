@@ -297,3 +297,42 @@ export const getWebsiteMeetings = async (req, res) => {
     });
   }
 };
+
+export const getWebsiteMeetingDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const meeting = await prisma.meeting.findFirst({
+      where: {
+        id: Number(id),
+        status: "ACTIVE",
+      },
+      include: {
+        chapter: true,
+        _count: {
+          select: {
+            meetingMembers: true,
+            meetingVisitors: true,
+          },
+        },
+      },
+    });
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: "Meeting not found or inactive",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: meeting,
+    });
+  } catch (error) {
+    console.error("Error in getWebsiteMeetingDetail:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};

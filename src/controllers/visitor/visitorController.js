@@ -250,6 +250,13 @@ export const convertVisitorToMember = async (req, res) => {
       });
     }
 
+    if (!visitor.email) {
+      return res.status(400).json({
+        success: false,
+        message: "This visitor cannot be converted because they do not have an email address. Please update their email address first.",
+      });
+    }
+
     if (visitor.status === "CONVERTED") {
       return res.status(400).json({
         success: false,

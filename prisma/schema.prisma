@@ -65,6 +65,36 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+// ─── Member/Visitor portal (self-service login) ───
+
+model PortalOtp {
+  id         Int       @id @default(autoincrement())
+  email      String
+  code       String // bcrypt-hashed 6-digit code
+  purpose    String    @default("LOGIN")
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+  @@map("portal_otps")
+}
+
+model PortalSession {
+  id               Int      @id @default(autoincrement())
+  actorType        String // "MEMBER" | "VISITOR"
+  actorId          Int
+  token            String   @db.Text
+  expiresAt        DateTime
+  isRevoked        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  issuedByAdminId  Int? // set when this session came from an admin "log in as" action, for audit purposes
+
+  @@index([actorType, actorId])
+  @@map("portal_sessions")
+}
+
 model Chapter {
   id                       Int                       @id @default(autoincrement())
   name                     String

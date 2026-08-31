@@ -8,6 +8,7 @@ import {
   deleteMeeting,
   getUpcomingMeetingByChapter,
   getWebsiteMeetings,
+  getWebsiteMeetingDetail,
 } from "../controllers/meeting/meetingController.js";
 
 import upload from "../middleware/uploadMiddleware.js";
@@ -34,6 +35,11 @@ router.get(
 router.get(
   "/website",
   getWebsiteMeetings
+);
+
+router.get(
+  "/website/:id",
+  getWebsiteMeetingDetail
 );
 
 router.get(

@@ -143,13 +143,41 @@ export const createApplication = async (req, res) => {
 
     console.log("socialProfiles before email:", application.socialProfiles);
 
-    // ─── Send confirmation email ───
+    // ─── Send confirmation email to the applicant. Wrapped in its own
+    // try/catch so a mail-server hiccup can't turn an already-successful
+    // registration into a 500 error for the user. ───
     if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
-      await sendEmail({
-        to: application.email,
-        subject: "MCN Registration Received",
-        html: registrationUserTemplate(application, meeting),
-      });
+      try {
+        await sendEmail({
+          to: application.email,
+          subject: "MCN Registration Received",
+          html: registrationUserTemplate(application, meeting),
+        });
+      } catch (emailError) {
+        console.error("APPLICANT CONFIRMATION EMAIL ERROR:", emailError);
+      }
+
+      // ─── Notify the admin of the new application — previously imported
+      // but never actually sent. ───
+      try {
+        const activeAdmin = await prisma.admin.findFirst({
+          where: { status: "ACTIVE" },
+          select: { email: true },
+          orderBy: { id: "asc" },
+        });
+
+        const adminEmail = activeAdmin?.email || process.env.SMTP_EMAIL;
+
+        if (adminEmail) {
+          await sendEmail({
+            to: adminEmail,
+            subject: `New MCN Registration — ${application.fullName}`,
+            html: registrationAdminTemplate(application),
+          });
+        }
+      } catch (emailError) {
+        console.error("ADMIN NOTIFICATION EMAIL ERROR:", emailError);
+      }
     }
 
     return res.status(201).json({

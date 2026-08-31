@@ -17,9 +17,22 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js"
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import sliderRoutes from "./routes/sliderRoutes.js";
+import portalRoutes from "./routes/portalRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 dotenv.config();
 
 const app = express();
+
+// ─── Hostinger (and most hosts) run this app behind a reverse proxy, which
+// adds an X-Forwarded-For header carrying the visitor's real IP. Express
+// ignores that header by default (security default — anyone could fake it
+// otherwise), which breaks express-rate-limit's per-IP tracking (every
+// visitor gets bucketed under the proxy's IP instead of their own).
+// Trusting exactly one hop matches a single reverse proxy in front of the
+// app — do not raise this without confirming the actual proxy chain depth,
+// since trusting more hops than actually exist lets a client spoof its IP
+// via that same header. ───
+app.set("trust proxy", 1);
 
 /*
 |--------------------------------------------------------------------------
@@ -72,6 +85,8 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/referral", referralRoutes)
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/slider", sliderRoutes);
+app.use("/api/portal", portalRoutes);
+app.use("/api/contact", contactRoutes);
 /*
 |--------------------------------------------------------------------------
 | Server
