@@ -27,12 +27,12 @@ export const handleContactSubmit = async (req, res) => {
       orderBy: { id: "asc" },
     });
 
-    const recipientEmail = admin?.email || process.env.SMTP_EMAIL;
+    const recipientEmail = admin?.email || process.env.MAIL_API_FROM_ADDRESS;
 
     if (!recipientEmail) {
       return res.status(500).json({
         success: false,
-        message: "SMTP recipient email is not configured",
+        message: "Mail recipient email is not configured",
       });
     }
 

@@ -146,7 +146,7 @@ export const createApplication = async (req, res) => {
     // ─── Send confirmation email to the applicant. Wrapped in its own
     // try/catch so a mail-server hiccup can't turn an already-successful
     // registration into a 500 error for the user. ───
-    if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+    if (process.env.MAIL_API_TOKEN && process.env.MAIL_API_MAILBOX_ID) {
       try {
         await sendEmail({
           to: application.email,
@@ -166,7 +166,7 @@ export const createApplication = async (req, res) => {
           orderBy: { id: "asc" },
         });
 
-        const adminEmail = activeAdmin?.email || process.env.SMTP_EMAIL;
+        const adminEmail = activeAdmin?.email || process.env.MAIL_API_FROM_ADDRESS;
 
         if (adminEmail) {
           await sendEmail({
@@ -545,10 +545,10 @@ export const approveApplication = async (req, res) => {
       });
     }
 
-    // Send approval email if SMTP is configured
+    // Send approval email if the Mail API is configured
     if (
-      process.env.SMTP_EMAIL &&
-      process.env.SMTP_PASSWORD
+      process.env.MAIL_API_TOKEN &&
+      process.env.MAIL_API_MAILBOX_ID
     ) {
       await sendEmail({
         to: updated.email,
@@ -613,10 +613,10 @@ export const rejectApplication = async (req, res) => {
         data: { status: "REJECTED" },
       });
 
-    // Send rejection email if SMTP is configured
+    // Send rejection email if the Mail API is configured
     if (
-      process.env.SMTP_EMAIL &&
-      process.env.SMTP_PASSWORD
+      process.env.MAIL_API_TOKEN &&
+      process.env.MAIL_API_MAILBOX_ID
     ) {
       await sendEmail({
         to: updated.email,
