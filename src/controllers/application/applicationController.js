@@ -487,6 +487,8 @@ export const approveApplication = async (req, res) => {
 
     // ─── Approving a MEMBER application must create the actual Member
     // record — otherwise the applicant never shows up on the Members page ───
+    let memberRecord = null;
+
     if (application.registrationType === "MEMBER") {
       if (!application.chapterId) {
         return res.status(400).json({
@@ -496,7 +498,7 @@ export const approveApplication = async (req, res) => {
         });
       }
 
-      const existingMember = await prisma.member.findFirst({
+      memberRecord = await prisma.member.findFirst({
         where: {
           OR: [
             { email: application.email },
@@ -505,14 +507,14 @@ export const approveApplication = async (req, res) => {
         },
       });
 
-      if (!existingMember) {
+      if (!memberRecord) {
         const nameParts = application.fullName.trim().split(/\s+/);
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(" ") || nameParts[0];
 
         const memberCode = await generateMemberCode(application.chapterId);
 
-        await prisma.member.create({
+        memberRecord = await prisma.member.create({
           data: {
             chapterId: application.chapterId,
             memberCode,
@@ -527,6 +529,58 @@ export const approveApplication = async (req, res) => {
             status: "ACTIVE",
           },
         });
+      }
+    }
+
+    // ─── If this application was for a specific meeting, put the approved
+    // applicant on that meeting's roster — otherwise they'd never show up
+    // on the admin Attendance page at all, since that only lists people
+    // who already have a MeetingMember/MeetingVisitor row. ───
+    if (application.meetingId) {
+      if (application.registrationType === "MEMBER" && memberRecord) {
+        const existingRoster = await prisma.meetingMember.findUnique({
+          where: {
+            meetingId_memberId: {
+              meetingId: application.meetingId,
+              memberId: memberRecord.id,
+            },
+          },
+        });
+
+        if (!existingRoster) {
+          await prisma.meetingMember.create({
+            data: {
+              meetingId: application.meetingId,
+              memberId: memberRecord.id,
+            },
+          });
+        }
+      }
+
+      if (application.registrationType === "VISITOR") {
+        const visitorRecord = await prisma.visitor.findFirst({
+          where: { phone: application.mobile },
+        });
+
+        if (visitorRecord) {
+          const existingRoster = await prisma.meetingVisitor.findUnique({
+            where: {
+              meetingId_visitorId: {
+                meetingId: application.meetingId,
+                visitorId: visitorRecord.id,
+              },
+            },
+          });
+
+          if (!existingRoster) {
+            await prisma.meetingVisitor.create({
+              data: {
+                meetingId: application.meetingId,
+                visitorId: visitorRecord.id,
+              },
+            });
+          }
+        }
       }
     }
 
