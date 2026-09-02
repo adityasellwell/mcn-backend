@@ -187,14 +187,17 @@ export const updateMeeting = async (req, res) => {
   }
 };
 
+// ─── Hard delete — permanently removes the meeting and its
+// registrations. Applications that referenced this meeting are kept,
+// just detached (meetingId set to null), not deleted — matches the
+// project-wide rule of never destroying application/member/visitor
+// history as a side effect of removing something else. ───
 export const deleteMeeting = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
 
     const meeting = await prisma.meeting.findUnique({
-      where: {
-        id: Number(id),
-      },
+      where: { id },
     });
 
     if (!meeting) {
@@ -204,18 +207,19 @@ export const deleteMeeting = async (req, res) => {
       });
     }
 
-    await prisma.meeting.update({
-      where: {
-        id: Number(id),
-      },
-      data: {
-        status: "INACTIVE",
-      },
-    });
+    await prisma.$transaction([
+      prisma.meetingMember.deleteMany({ where: { meetingId: id } }),
+      prisma.meetingVisitor.deleteMany({ where: { meetingId: id } }),
+      prisma.registrationApplication.updateMany({
+        where: { meetingId: id },
+        data: { meetingId: null },
+      }),
+      prisma.meeting.delete({ where: { id } }),
+    ]);
 
     return res.status(200).json({
       success: true,
-      message: "Meeting deleted successfully",
+      message: "Meeting permanently deleted",
     });
   } catch (error) {
     console.error(error);
