@@ -69,7 +69,7 @@ export const getRecentApplications = async (req, res) => {
     // what's currently being registered for, not the whole application
     // history across every past meeting ───
     const latestMeeting = await prisma.meeting.findFirst({
-      where: { meetingDate: { gte: new Date() } },
+      where: { meetingDate: { gte: new Date() }, status: "ACTIVE" },
       orderBy: { meetingDate: "asc" },
     });
 
@@ -104,6 +104,7 @@ export const getUpcomingMeetings = async (req, res) => {
         meetingDate: {
           gte: new Date(),
         },
+        status: "ACTIVE",
       },
       include: {
         chapter: {
