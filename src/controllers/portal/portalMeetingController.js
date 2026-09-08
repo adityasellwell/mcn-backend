@@ -276,7 +276,7 @@ export const submitPortalMeetingPayment = async (req, res) => {
   try {
     const { id, role } = req.portalUser;
     const meetingId = parseInt(req.params.meetingId);
-    const { utrNumber } = req.body;
+    const { utrNumber, paymentMethod } = req.body;
 
     if (isNaN(meetingId)) {
       return res.status(400).json({
@@ -285,18 +285,32 @@ export const submitPortalMeetingPayment = async (req, res) => {
       });
     }
 
+    const isAtVenue = paymentMethod === "AT_VENUE";
+
     let paymentScreenshot = null;
     if (req.file) {
       const uploadedFile = await uploadToCloudinary(req.file.buffer, "mcn/payments");
       paymentScreenshot = uploadedFile.secure_url;
     }
 
-    if (!paymentScreenshot && !utrNumber) {
+    if (!isAtVenue && !paymentScreenshot && !utrNumber) {
       return res.status(400).json({
         success: false,
         message: "Please upload a payment screenshot or provide a UTR number",
       });
     }
+
+    const updateData = isAtVenue
+      ? {
+          utrNumber: "AT_VENUE",
+          paymentScreenshot: null,
+          paymentStatus: "PENDING",
+        }
+      : {
+          paymentScreenshot: paymentScreenshot || undefined,
+          utrNumber: utrNumber || undefined,
+          paymentStatus: "SUBMITTED",
+        };
 
     if (role === "MEMBER") {
       const registration = await prisma.meetingMember.findUnique({
@@ -322,16 +336,14 @@ export const submitPortalMeetingPayment = async (req, res) => {
             memberId: id,
           },
         },
-        data: {
-          paymentScreenshot: paymentScreenshot || undefined,
-          utrNumber: utrNumber || undefined,
-          paymentStatus: "SUBMITTED",
-        },
+        data: updateData,
       });
 
       return res.status(200).json({
         success: true,
-        message: "Payment proof submitted successfully",
+        message: isAtVenue
+          ? "Pay at Venue selected. Registration saved!"
+          : "Payment proof submitted successfully",
         data: updated,
       });
     }
@@ -360,16 +372,14 @@ export const submitPortalMeetingPayment = async (req, res) => {
             visitorId: id,
           },
         },
-        data: {
-          paymentScreenshot: paymentScreenshot || undefined,
-          utrNumber: utrNumber || undefined,
-          paymentStatus: "SUBMITTED",
-        },
+        data: updateData,
       });
 
       return res.status(200).json({
         success: true,
-        message: "Payment proof submitted successfully",
+        message: isAtVenue
+          ? "Pay at Venue selected. Registration saved!"
+          : "Payment proof submitted successfully",
         data: updated,
       });
     }

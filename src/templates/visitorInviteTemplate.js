@@ -62,7 +62,7 @@ export const visitorInviteTemplate = (inviterName, visitorName) => `
 
               <p style="font-size:13px;color:#aaaaaa;text-align:center;margin:0;">
                 If you have any questions, reply to this email or reach out to us at
-                <a href="mailto:hello@mcnmumbai.com" style="color:#0C831F;text-decoration:none;">hello@mcnmumbai.com</a>
+                <a href="mailto:support@mcnmumbai.com" style="color:#0C831F;text-decoration:none;">support@mcnmumbai.com</a>
               </p>
             </td>
           </tr>

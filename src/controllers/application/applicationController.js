@@ -607,16 +607,20 @@ export const approveApplication = async (req, res) => {
       });
     }
 
-    // Send approval email if the Mail API is configured
+    // Send approval email if configured (wrapped in try/catch so mail server errors never fail an approved application)
     if (
       process.env.MAIL_API_TOKEN &&
       process.env.MAIL_API_MAILBOX_ID
     ) {
-      await sendEmail({
-        to: updated.email,
-        subject: "MCN Application Approved",
-        html: registrationApprovalTemplate(updated, meeting),
-      });
+      try {
+        await sendEmail({
+          to: updated.email,
+          subject: "MCN Application Approved",
+          html: registrationApprovalTemplate(updated, meeting),
+        });
+      } catch (emailErr) {
+        console.error("APPROVE APPLICATION EMAIL ERROR:", emailErr);
+      }
     }
 
     return res.status(200).json({
@@ -625,10 +629,10 @@ export const approveApplication = async (req, res) => {
       data: updated,
     });
   } catch (error) {
-    console.error(error);
+    console.error("APPROVE APPLICATION ERROR:", error);
     return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: error?.message || "Internal Server Error",
     });
   }
 };
@@ -675,33 +679,37 @@ export const rejectApplication = async (req, res) => {
         data: { status: "REJECTED" },
       });
 
-    // Send rejection email if the Mail API is configured
+    // Send rejection email if configured (wrapped in try/catch)
     if (
       process.env.MAIL_API_TOKEN &&
       process.env.MAIL_API_MAILBOX_ID
     ) {
-      await sendEmail({
-        to: updated.email,
-        subject: "MCN Application Update",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-            <div style="background: #0C831F; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">MCN - Muslim Community Network</h1>
-              <p style="color: #d4f5d4; margin: 6px 0 0;">Application Status Update</p>
+      try {
+        await sendEmail({
+          to: updated.email,
+          subject: "MCN Application Update",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+              <div style="background: #0C831F; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">MCN - Muslim Community Network</h1>
+                <p style="color: #d4f5d4; margin: 6px 0 0;">Application Status Update</p>
+              </div>
+              <p>Dear <strong>${updated.fullName}</strong>,</p>
+              <p>After careful review of your registration application for <strong>Muslim Community Network (MCN)</strong>, we are unable to proceed at this time.</p>
+              <p>If you have any questions or would like more information, please feel free to reach out to us.</p>
+              <p>We appreciate your interest in our community.</p>
+              <br/>
+              <p>Regards,<br/><strong>Muslim Community Network Team</strong></p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+              <div style="text-align: center; font-size: 11px; color: #888; margin-top: 20px; font-style: italic;">
+                Beautifully developed and maintained by <a href="https://inspiringinfosys.com" style="color: #0C831F; text-decoration: none; font-weight: bold;">Inspiring Infosys</a>
+              </div>
             </div>
-            <p>Dear <strong>${updated.fullName}</strong>,</p>
-            <p>After careful review of your registration application for <strong>Muslim Community Network (MCN)</strong>, we are unable to proceed at this time.</p>
-            <p>If you have any questions or would like more information, please feel free to reach out to us.</p>
-            <p>We appreciate your interest in our community.</p>
-            <br/>
-            <p>Regards,<br/><strong>Muslim Community Network Team</strong></p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-            <div style="text-align: center; font-size: 11px; color: #888; margin-top: 20px; font-style: italic;">
-              Beautifully developed and maintained by <a href="https://inspiringinfosys.com" style="color: #0C831F; text-decoration: none; font-weight: bold;">Inspiring Infosys</a>
-            </div>
-          </div>
-        `,
-      });
+          `,
+        });
+      } catch (emailErr) {
+        console.error("REJECT APPLICATION EMAIL ERROR:", emailErr);
+      }
     }
 
     return res.status(200).json({
@@ -710,10 +718,10 @@ export const rejectApplication = async (req, res) => {
       data: updated,
     });
   } catch (error) {
-    console.error(error);
+    console.error("REJECT APPLICATION ERROR:", error);
     return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: error?.message || "Internal Server Error",
     });
   }
 };
