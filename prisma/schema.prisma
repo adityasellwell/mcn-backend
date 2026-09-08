@@ -21,6 +21,9 @@ model RegistrationApplication {
   referredBy        String?
   paymentScreenshot String?
   utrNumber         String?
+  isBniMember       Boolean           @default(false)
+  bniChapter        String?
+  paymentMethod     String            @default("ONLINE")
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   status            ApplicationStatus @default(PENDING)
@@ -126,6 +129,8 @@ model Member {
   profession        String
   businessCategory  String
   website           String?
+  isBniMember       Boolean         @default(false)
+  bniChapter        String?
   profilePhoto      String?
   membershipStart   DateTime?
   membershipExpiry  DateTime?

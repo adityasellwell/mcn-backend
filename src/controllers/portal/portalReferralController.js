@@ -1,4 +1,6 @@
 import prisma from "../../config/prisma.js";
+import { sendEmail } from "../../utils/sendEmail.js";
+import { visitorInviteTemplate } from "../../templates/visitorInviteTemplate.js";
 
 // Get referrals (Given or Received by the logged-in Member)
 export const getPortalReferrals = async (req, res) => {
@@ -155,6 +157,28 @@ export const invitePortalVisitor = async (req, res) => {
         notes: notes || null,
       },
     });
+
+    // ─── Send invite email to the visitor (non-blocking — a mail failure
+    // must never roll back an already-successful invite record) ───
+    if (visitor.email) {
+      try {
+        const inviter = await prisma.member.findUnique({
+          where: { id },
+          select: { firstName: true, lastName: true },
+        });
+        const inviterName = inviter
+          ? `${inviter.firstName} ${inviter.lastName || ""}`.trim()
+          : "an MCN Member";
+
+        await sendEmail({
+          to: visitor.email,
+          subject: `You've been invited to Muslim Community Network (MCN)`,
+          html: visitorInviteTemplate(inviterName, visitor.firstName),
+        });
+      } catch (emailErr) {
+        console.error("VISITOR INVITE EMAIL ERROR:", emailErr);
+      }
+    }
 
     return res.status(201).json({
       success: true,

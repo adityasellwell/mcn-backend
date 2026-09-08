@@ -44,6 +44,9 @@ export const createApplication = async (req, res) => {
       address,
       referredBy,
       utrNumber,
+      isBniMember,
+      bniChapter,
+      paymentMethod,
     } = req.body;
 
     // ─── Parse socialLinks JSON string → array ───
@@ -106,6 +109,9 @@ export const createApplication = async (req, res) => {
         referredBy: referredBy || null,
         utrNumber: utrNumber || null,
         paymentScreenshot,
+        isBniMember: isBniMember === true || isBniMember === "true",
+        bniChapter: bniChapter || null,
+        paymentMethod: paymentMethod || "ONLINE",
       },
     });
 
@@ -526,6 +532,8 @@ export const approveApplication = async (req, res) => {
             profession: application.businessCategory,
             businessCategory: application.businessCategory,
             website: application.website || null,
+            isBniMember: application.isBniMember ?? false,
+            bniChapter: application.bniChapter || null,
             status: "ACTIVE",
           },
         });
