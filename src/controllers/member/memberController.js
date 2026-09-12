@@ -1,5 +1,6 @@
 import prisma from "../../config/prisma.js";
 import { generateMemberCode } from "../../utils/generateMemberCode.js";
+import { exportToExcel } from "../../utils/excelExport.js";
 
 // ─────────────────────────────────────────────
 // GET /api/member/lookup?phone=&email=
@@ -263,6 +264,77 @@ export const updateMemberStatus = async (req, res) => {
       message: "Member status updated successfully",
       data: updatedMember,
     });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// ─── Export all members to Excel ───
+export const exportMembers = async (req, res) => {
+  try {
+    const { status, chapterId } = req.query;
+
+    const where = {};
+    if (status) where.status = status;
+    if (chapterId) where.chapterId = Number(chapterId);
+
+    const members = await prisma.member.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        chapter: {
+          select: { name: true, city: true },
+        },
+      },
+    });
+
+    const workbook = await exportToExcel({
+      sheetName: "Members",
+
+      columns: [
+        { header: "ID", key: "id" },
+        { header: "Member Code", key: "memberCode" },
+        { header: "First Name", key: "firstName" },
+        { header: "Last Name", key: "lastName" },
+        { header: "Email", key: "email" },
+        { header: "Phone", key: "phone" },
+        { header: "Company", key: "companyName" },
+        { header: "Profession", key: "profession" },
+        { header: "Business Category", key: "businessCategory" },
+        { header: "Website", key: "website" },
+        { header: "Chapter", key: "chapterName" },
+        { header: "City", key: "chapterCity" },
+        { header: "Status", key: "status" },
+        { header: "Membership Start", key: "membershipStart" },
+        { header: "Membership Expiry", key: "membershipExpiry" },
+        { header: "Created At", key: "createdAt" },
+      ],
+
+      data: members.map((member) => ({
+        ...member,
+        chapterName: member.chapter?.name || "",
+        chapterCity: member.chapter?.city || "",
+      })),
+    });
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=members.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+
+    res.end();
   } catch (error) {
     console.error(error);
 
