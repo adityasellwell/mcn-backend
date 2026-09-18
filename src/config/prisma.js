@@ -18,9 +18,14 @@ const prisma = new PrismaClient({
 
 // ─── Ensure connections are closed cleanly on shutdown instead of the
 // process being killed mid-handshake, which is what accumulates the
-// aborted-connection count MySQL uses to block a host ───
+// aborted-connection count MySQL uses to block a host. Bounded with a hard
+// timeout so a hung/unreachable database can't make this hang forever and
+// force the platform into a harder, uncleaner kill instead ───
 const shutdown = async () => {
-  await prisma.$disconnect();
+  await Promise.race([
+    prisma.$disconnect(),
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
   process.exit(0);
 };
 
