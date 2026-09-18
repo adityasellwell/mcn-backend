@@ -127,7 +127,7 @@ export const loginAdmin = async (req, res) => {
     console.error("LOGIN ERROR:", error.message);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
     });
   }
 };
