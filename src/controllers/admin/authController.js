@@ -68,9 +68,28 @@ export const loginAdmin = async (req, res) => {
     }
 
     // ─── Find admin ───
-    const admin = await prisma.admin.findUnique({
-      where: { email },
-    });
+    const startedAt = Date.now();
+    const dbHost = (process.env.DATABASE_URL || "").split("@")[1]?.split("/")[0];
+    console.log(`[LOGIN] request received, about to query DB (${dbHost}) from ip=${req.ip}`);
+
+    const stillWaiting = setTimeout(() => {
+      console.warn(`[LOGIN] DB query still pending after 5s — DB unreachable or blocked? (${dbHost})`);
+    }, 5000);
+
+    let admin;
+    try {
+      admin = await prisma.admin.findUnique({
+        where: { email },
+      });
+      console.log(`[LOGIN] DB query finished in ${Date.now() - startedAt}ms, found=${!!admin}`);
+    } catch (dbError) {
+      console.error(
+        `[LOGIN] DB query FAILED after ${Date.now() - startedAt}ms — code=${dbError.code || "n/a"} name=${dbError.name}: ${dbError.message.split("\n").filter(Boolean).pop()}`
+      );
+      throw dbError;
+    } finally {
+      clearTimeout(stillWaiting);
+    }
 
     if (!admin) {
       return res.status(401).json({
